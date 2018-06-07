@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -15,6 +16,22 @@ import (
 const (
 	MaxReqSize = 1024
 )
+
+type nonce struct {
+	instanceId  uint32
+	extraNonce1 string
+}
+
+func (n *nonce) newNonce(configInstanceId uint32) *nonce {
+	n.instanceId = configInstanceId << 27
+	return n
+}
+
+func (n *nonce) next() string {
+	n.instanceId += 1
+	n.extraNonce1 = fmt.Sprintf("%x", n.instanceId)
+	return n.extraNonce1
+}
 
 func (s *ProxyServer) ListenTCP() {
 	timeout := util.MustParseDuration(s.config.Proxy.Stratum.Timeout)
@@ -33,6 +50,9 @@ func (s *ProxyServer) ListenTCP() {
 	log.Printf("Stratum listening on %s", s.config.Proxy.Stratum.Listen)
 	var accept = make(chan int, s.config.Proxy.Stratum.MaxConn)
 	n := 0
+
+	nonce := new(nonce)
+	nonce.newNonce(s.config.InstanceId)
 
 	for {
 		conn, err := server.AcceptTCP()
@@ -110,13 +130,13 @@ func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
 			log.Println("Malformed stratum request params from", cs.ip)
 			return err
 		}
-		reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
+		reply, errReply := s.handleSubscribeRPC(cs, params, req.Worker)
 		if errReply != nil {
 			return cs.sendTCPError(req.Id, errReply)
 		}
-		return cs.sendTCPResult(req.Id, reply)
+		return cs.sendTCPResult(req.Id, &reply)
 	case "mining.authorize":
-		reply, errReply := s.handleGetWorkRPC(cs)
+		reply, errReply := s.handleAuthorizeRPC(cs)
 		if errReply != nil {
 			return cs.sendTCPError(req.Id, errReply)
 		}

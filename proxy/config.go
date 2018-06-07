@@ -1,26 +1,22 @@
 package proxy
 
 import (
-	"github.com/jkkgbe/open-zcash-pool/api"
-	"github.com/jkkgbe/open-zcash-pool/payouts"
 	"github.com/jkkgbe/open-zcash-pool/policy"
 	"github.com/jkkgbe/open-zcash-pool/storage"
 )
 
 type Config struct {
-	Name                  string        `json:"name"`
-	Proxy                 Proxy         `json:"proxy"`
-	Api                   api.ApiConfig `json:"api"`
-	Upstream              []Upstream    `json:"upstream"`
-	UpstreamCheckInterval string        `json:"upstreamCheckInterval"`
+	Name                  string     `json:"name"`
+	Proxy                 Proxy      `json:"proxy"`
+	Upstream              []Upstream `json:"upstream"`
+	UpstreamCheckInterval string     `json:"upstreamCheckInterval"`
 
 	Threads int `json:"threads"`
 
+	InstanceId int `json:"instanceId"`
+
 	Coin  string         `json:"coin"`
 	Redis storage.Config `json:"redis"`
-
-	BlockUnlocker payouts.UnlockerConfig `json:"unlocker"`
-	Payouts       payouts.PayoutsConfig  `json:"payouts"`
 
 	NewrelicName    string `json:"newrelicName"`
 	NewrelicKey     string `json:"newrelicKey"`

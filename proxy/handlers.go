@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/json"
 	"log"
 	"regexp"
 	"strings"
@@ -13,6 +14,26 @@ import (
 var noncePattern = regexp.MustCompile("^0x[0-9a-f]{16}$")
 var hashPattern = regexp.MustCompile("^0x[0-9a-f]{64}$")
 var workerPattern = regexp.MustCompile("^[0-9a-zA-Z-_]{1,8}$")
+
+func (s *ProxyServer) handleSubscribeRPC(cs *Session, params []string, id string) ([]string, *ErrorReply) {
+	if len(params) == 0 {
+		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
+	}
+
+	return json.RawMessage(`[[["mining.set_difficulty", 1], ["mining.notify", 2]], 12, 34]`), nil
+}
+
+func (s *ProxyServer) handleAuthorizeRPC(cs *Session, params []string, id string) {
+
+}
+
+func (s *ProxyServer) handleTCPSubmitRPC(cs *Session, params []string, id string) {
+
+}
+
+func (s *ProxyServer) handleSubmitRPC(cs *Session, params []string, id string) {
+
+}
 
 // Stratum
 func (s *ProxyServer) handleLoginRPC(cs *Session, params []string, id string) (bool, *ErrorReply) {
