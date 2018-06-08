@@ -129,7 +129,7 @@ func NewProxy(cfg *Config, backend *storage.RedisClient) *ProxyServer {
 }
 
 func (s *ProxyServer) Start() {
-	log.Printf("Starting proxy on %v", s.config.Proxy.Listen)
+	log.Printf("Starting proxy on %v 🤙", s.config.Proxy.Listen)
 	r := mux.NewRouter()
 	r.Handle("/{login:t[0-9a-fA-F]{34}}/{id:[0-9a-zA-Z-_]{1,20}}", s)
 	r.Handle("/{login:t[0-9a-fA-F]{34}}", s)
