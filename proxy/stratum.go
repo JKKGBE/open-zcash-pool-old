@@ -101,40 +101,32 @@ func (s *ProxyServer) handleTCPClient(cs *Session) error {
 }
 
 func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
+	var params []string
+	err := json.Unmarshal(req.Params, &params)
+	if err != nil {
+		log.Println("Malformed stratum request params from", cs.ip)
+		return err
+	}
+
+	var reply []byte
+	var errReply *ErrorReply
 	// Handle RPC methods
 	switch req.Method {
 	case "mining.subscribe":
-		var params []string
-		err := json.Unmarshal(req.Params, &params)
-		if err != nil {
-			log.Println("Malformed stratum request params from", cs.ip)
-			return err
-		}
-		extraNonce1 := s.extraNonceCounter.getNextExtraNonce1
+		extraNonce1 := s.extraNonceCounter.getNextExtraNonce1()
 		reply := s.handleSubscribeRPC(cs, extraNonce1)
-		return cs.sendTCPResult(req.Id, &reply)
 	case "mining.authorize":
-		reply, errReply := s.handleAuthorizeRPC(cs)
-		if errReply != nil {
-			return cs.sendTCPError(req.Id, errReply)
-		}
-		return cs.sendTCPResult(req.Id, &reply)
+		reply, errReply := s.handleAuthorizeRPC(cs, params)
 	case "mining.submit":
-		var params []string
-		err := json.Unmarshal(req.Params, &params)
-		if err != nil {
-			log.Println("Malformed stratum request params from", cs.ip)
-			return err
-		}
-		reply, errReply := s.handleTCPSubmitRPC(cs, req.Worker, params)
-		if errReply != nil {
-			return cs.sendTCPError(req.Id, errReply)
-		}
-		return cs.sendTCPResult(req.Id, &reply)
+		reply, errReply := s.handleTCPSubmitRPC(cs, params, req.Worker)
 	default:
 		errReply := s.handleUnknownRPC(cs, req.Method)
+	}
+
+	if errReply != nil {
 		return cs.sendTCPError(req.Id, errReply)
 	}
+	return cs.sendTCPResult(req.Id, &reply)
 }
 
 func (cs *Session) sendTCPResult(id json.RawMessage, result interface{}) error {

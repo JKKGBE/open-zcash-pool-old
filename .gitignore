@@ -1,3 +1,4 @@
+.vscode
 .DS_Store
 config.json
 testnet.json

@@ -15,10 +15,18 @@ var Shannon = math.BigPow(10, 9)
 
 var pow256 = math.BigPow(2, 256)
 var addressPattern = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+var tAddressPattern = regexp.MustCompile("^t[0-9a-fA-F]{34}$")
 var zeroHash = regexp.MustCompile("^0?x?0+$")
 
 func IsValidHexAddress(s string) bool {
 	if IsZeroHash(s) || !addressPattern.MatchString(s) {
+		return false
+	}
+	return true
+}
+
+func IsValidtAddress(s string) bool {
+	if !tAddressPattern.MatchString(s) {
 		return false
 	}
 	return true

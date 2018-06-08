@@ -12,7 +12,38 @@ import (
 
 var hasher = ethash.New()
 
-func (s *ProxyServer) processShare(login, id, ip string, t *BlockTemplate, params []string) (bool, bool) {
+/*
+func (s *ProxyServer) processShare(cs *Session, id string, t *BlockTemplate, params []string) (bool, bool, *ErrorReply) {
+	workerId := params[0]
+	jobId := params[1]
+	nTime := params[2]
+	extraNonce2 := params[3]
+	solution := params[4]
+	nOnce := cs.extraNonce1 + extraNonce2
+
+	submitTime := time.Unix() / 1000
+
+	// TODO:
+	//job := jobs[jobId]
+	//if !job then return {Code: 21, Message: "Job not found"}
+
+	if len(nTime) != 8 {
+		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of nTime"}
+	}
+
+	if len(nOnce) != 64 {
+		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of nOnce"}
+	}
+
+	if len(solution) != 2694 {
+		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of solution"}
+	}
+
+	//TODO: verify and submit block
+}
+*/
+
+func (s *ProxyServer) processShare(cs *Session, id string, t *BlockTemplate, params []string) (bool, bool) {
 	nonceHex := params[0]
 	hashNoNonce := params[1]
 	mixDigest := params[2]
@@ -21,7 +52,7 @@ func (s *ProxyServer) processShare(login, id, ip string, t *BlockTemplate, param
 
 	h, ok := t.headers[hashNoNonce]
 	if !ok {
-		log.Printf("Stale share from %v@%v", login, ip)
+		log.Printf("Stale share from %v@%v", cs.login, cs.ip)
 		return false, false
 	}
 
@@ -54,7 +85,7 @@ func (s *ProxyServer) processShare(login, id, ip string, t *BlockTemplate, param
 			return false, false
 		} else {
 			s.fetchBlockTemplate()
-			exist, err := s.backend.WriteBlock(login, id, params, shareDiff, h.diff.Int64(), h.height, s.hashrateExpiration)
+			exist, err := s.backend.WriteBlock(cs.login, id, params, shareDiff, h.diff.Int64(), h.height, s.hashrateExpiration)
 			if exist {
 				return true, false
 			}
@@ -63,10 +94,10 @@ func (s *ProxyServer) processShare(login, id, ip string, t *BlockTemplate, param
 			} else {
 				log.Printf("Inserted block %v to backend", h.height)
 			}
-			log.Printf("Block found by miner %v@%v at height %d", login, ip, h.height)
+			log.Printf("Block found by miner %v@%v at height %d", cs.login, cs.ip, h.height)
 		}
 	} else {
-		exist, err := s.backend.WriteShare(login, id, params, shareDiff, h.height, s.hashrateExpiration)
+		exist, err := s.backend.WriteShare(cs.login, id, params, shareDiff, h.height, s.hashrateExpiration)
 		if exist {
 			return true, false
 		}
