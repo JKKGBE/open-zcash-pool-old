@@ -30,6 +30,8 @@ type ProxyServer struct {
 	hashrateExpiration time.Duration
 	failsCount         int64
 
+	extraNonceCounter *extraNonceCounter
+
 	// Stratum
 	sessionsMu sync.RWMutex
 	sessions   map[*Session]struct{}
@@ -42,8 +44,9 @@ type Session struct {
 
 	// Stratum
 	sync.Mutex
-	conn  *net.TCPConn
-	login string
+	conn        *net.TCPConn
+	login       string
+	extraNonce1 string
 }
 
 func NewProxy(cfg *Config, backend *storage.RedisClient) *ProxyServer {
@@ -80,6 +83,8 @@ func NewProxy(cfg *Config, backend *storage.RedisClient) *ProxyServer {
 
 	stateUpdateIntv := util.MustParseDuration(cfg.Proxy.StateUpdateInterval)
 	stateUpdateTimer := time.NewTimer(stateUpdateIntv)
+
+	proxy.extraNonceCounter = newNonce(cfg.InstanceId)
 
 	go func() {
 		for {
