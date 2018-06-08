@@ -35,14 +35,13 @@ func NewRPCClient(name, url, timeout string) *RPCClient {
 	return rpcClient
 }
 
-func (r *RPCClient) GetBlockTemplate() ([]string, error) {
+func (r *RPCClient) GetBlockTemplate(reply interface{}) error {
 	rpcResp, err := r.doPost(r.Url, "getblocktemplate", []string{})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var reply []string
-	err = json.Unmarshal(*rpcResp.Result, &reply)
-	return reply, err
+	err = json.Unmarshal(*rpcResp.Result, reply)
+	return err
 }
 
 func (r *RPCClient) SubmitBlock(params []string) (bool, error) {

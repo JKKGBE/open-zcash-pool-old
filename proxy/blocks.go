@@ -7,8 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/jkkgbe/open-zcash-pool/rpc"
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
@@ -22,58 +20,63 @@ type heightDiffPair struct {
 
 type BlockTemplate struct {
 	sync.RWMutex
-	Header               string
-	Seed                 string
-	Target               string
-	Difficulty           *big.Int
-	Height               uint64
-	GetPendingBlockCache *rpc.GetBlockReplyPart
-	nonces               map[string]bool
-	headers              map[string]heightDiffPair
+	PrevBlockHash   string
+	coinbaseTxnData string
+	coinbaseTxnHash string
+	foundersReward  int
+	longpollId      string
+	minTime         int
+	nonceRange      string
+	curtime         int
+	bits            string
+	height          int
 }
 
 type Block struct {
-	difficulty  *big.Int
-	hashNoNonce common.Hash
-	nonce       uint64
-	mixDigest   common.Hash
-	number      uint64
+	difficulty         int
+	version            string
+	prevHashReversed   string
+	merkleRootReversed string
+	reservedField      string
+	nTime              string
+	bits               string
+	nonce              string
+	header             string
 }
 
-func (b Block) Difficulty() *big.Int     { return b.difficulty }
-func (b Block) HashNoNonce() common.Hash { return b.hashNoNonce }
-func (b Block) Nonce() uint64            { return b.nonce }
-func (b Block) MixDigest() common.Hash   { return b.mixDigest }
-func (b Block) NumberU64() uint64        { return b.number }
+// func (b Block) Difficulty() *big.Int     { return b.difficulty }
+// func (b Block) HashNoNonce() common.Hash { return b.hashNoNonce }
+// func (b Block) Nonce() uint64            { return b.nonce }
+// func (b Block) MixDigest() common.Hash   { return b.mixDigest }
+// func (b Block) NumberU64() uint64        { return b.number }
 
 func (s *ProxyServer) fetchBlockTemplate() {
 	rpc := s.rpc()
 	t := s.currentBlockTemplate()
-	pendingReply, height, diff, err := s.fetchPendingBlock()
-	if err != nil {
-		log.Printf("Error while refreshing pending block on %s: %s", rpc.Name, err)
-		return
-	}
-	reply, err := rpc.GetWork()
+	var reply BlockTemplate
+	err := rpc.GetBlockTemplate(&reply)
 	if err != nil {
 		log.Printf("Error while refreshing block template on %s: %s", rpc.Name, err)
 		return
 	}
 	// No need to update, we have fresh job
-	if t != nil && t.Header == reply[0] {
+	if t != nil && t.PrevBlockHash == reply.PrevBlockHash {
 		return
 	}
 
-	pendingReply.Difficulty = util.ToHex(s.config.Proxy.Difficulty)
+	// TODO calc merkle root etc
 
-	newTemplate := BlockTemplate{
-		Header:               reply[0],
-		Seed:                 reply[1],
-		Target:               reply[2],
-		Height:               height,
-		Difficulty:           big.NewInt(diff),
-		GetPendingBlockCache: pendingReply,
-		headers:              make(map[string]heightDiffPair),
+	// TODO
+	newTemplate := Block{
+		difficulty:         1,
+		version:            "",
+		prevHashReversed:   "",
+		merkleRootReversed: "",
+		reservedField:      "",
+		nTime:              "",
+		bits:               "",
+		nonce:              "",
+		header:             "",
 	}
 	// Copy job backlog and add current one
 	newTemplate.headers[reply[0]] = heightDiffPair{
