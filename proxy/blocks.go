@@ -3,11 +3,8 @@ package proxy
 import (
 	"log"
 	"math/big"
-	"strconv"
-	"strings"
 	"sync"
 
-	"github.com/jkkgbe/open-zcash-pool/rpc"
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
 
@@ -108,24 +105,4 @@ func (s *ProxyServer) fetchBlockTemplate() {
 	if s.config.Proxy.Stratum.Enabled {
 		go s.broadcastNewJobs()
 	}
-}
-
-func (s *ProxyServer) fetchPendingBlock() (*rpc.GetBlockReplyPart, uint64, int64, error) {
-	rpc := s.rpc()
-	reply, err := rpc.GetPendingBlock()
-	if err != nil {
-		log.Printf("Error while refreshing pending block on %s: %s", rpc.Name, err)
-		return nil, 0, 0, err
-	}
-	blockNumber, err := strconv.ParseUint(strings.Replace(reply.Number, "0x", "", -1), 16, 64)
-	if err != nil {
-		log.Println("Can't parse pending block number")
-		return nil, 0, 0, err
-	}
-	blockDiff, err := strconv.ParseInt(strings.Replace(reply.Difficulty, "0x", "", -1), 16, 64)
-	if err != nil {
-		log.Println("Can't parse pending block difficulty")
-		return nil, 0, 0, err
-	}
-	return reply, blockNumber, blockDiff, nil
 }
