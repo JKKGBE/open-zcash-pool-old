@@ -18,18 +18,28 @@ type heightDiffPair struct {
 	height uint64
 }
 
+type transaction struct {
+	fee  int    `json:"fee"`
+	hash string `json:"hash"`
+}
+
+type coinbaseTxn struct {
+	data           string `json:"data"`
+	hash           string `json:"hash"`
+	foundersReward int    `json:"foundersreward"`
+}
+
 type BlockTemplate struct {
 	sync.RWMutex
-	PrevBlockHash   string
-	coinbaseTxnData string
-	coinbaseTxnHash string
-	foundersReward  int
-	longpollId      string
-	minTime         int
-	nonceRange      string
-	curtime         int
-	bits            string
-	height          int
+	prevBlockHash string        `json:"prevblockhash"`
+	transactions  []transaction `json:"transactions"`
+	coinbaseTxn   coinbaseTxn   `json:"coinbasetxn"`
+	longpollId    string        `json:""`
+	minTime       int           `json:""`
+	nonceRange    string        `json:""`
+	curtime       int           `json:""`
+	bits          string        `json:""`
+	height        int           `json:""`
 }
 
 type Block struct {
@@ -60,14 +70,14 @@ func (s *ProxyServer) fetchBlockTemplate() {
 		return
 	}
 	// No need to update, we have fresh job
-	if t != nil && t.PrevBlockHash == reply.PrevBlockHash {
+	if t != nil && t.prevBlockHash == reply.prevBlockHash {
 		return
 	}
 
 	// TODO calc merkle root etc
 
 	// TODO
-	newTemplate := Block{
+	newBlock := Block{
 		difficulty:         1,
 		version:            "",
 		prevHashReversed:   "",
@@ -78,19 +88,20 @@ func (s *ProxyServer) fetchBlockTemplate() {
 		nonce:              "",
 		header:             "",
 	}
+
 	// Copy job backlog and add current one
-	newTemplate.headers[reply[0]] = heightDiffPair{
+	newBlock.headers[reply[0]] = heightDiffPair{
 		diff:   util.TargetHexToDiff(reply[2]),
 		height: height,
 	}
 	if t != nil {
 		for k, v := range t.headers {
 			if v.height > height-maxBacklog {
-				newTemplate.headers[k] = v
+				newBlock.headers[k] = v
 			}
 		}
 	}
-	s.blockTemplate.Store(&newTemplate)
+	s.blockTemplate.Store(&newBlock)
 	log.Printf("New block to mine on %s at height %d / %s", rpc.Name, height, reply[0][0:10])
 
 	// Stratum

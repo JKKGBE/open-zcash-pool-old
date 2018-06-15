@@ -15,6 +15,7 @@ import (
 	"github.com/jkkgbe/open-zcash-pool/storage"
 )
 
+var diff1 = "0x0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 var cfg proxy.Config
 var backend *storage.RedisClient
 
