@@ -87,3 +87,10 @@ func String2Big(num string) *big.Int {
 	n.SetString(num, 0)
 	return n
 }
+
+func ReverseHash(hash [32]byte) [32]byte {
+	for i, j := 0, len(hash)-1; i < j; i, j = i+1, j-1 {
+		hash[i], hash[j] = hash[j], hash[i]
+	}
+	return hash
+}

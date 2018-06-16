@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
 
@@ -72,13 +73,44 @@ func (s *ProxyServer) fetchBlockTemplate() {
 	}
 
 	// TODO calc merkle root etc
+	// if (blockHeight.toString(16).length % 2 === 0) {
+	//     var blockHeightSerial = blockHeight.toString(16);
+	// } else {
+	//     var blockHeightSerial = '0' + blockHeight.toString(16);
+	// }
+	// var height = Math.ceil((blockHeight << 1).toString(2).length / 8);
+	// var lengthDiff = blockHeightSerial.length/2 - height;
+	// for (var i = 0; i < lengthDiff; i++) {
+	//     blockHeightSerial = blockHeightSerial + '00';
+	// }
+	// length = '0' + height;
+	// var serializedBlockHeight = new Buffer.concat([
+	//     new Buffer(length, 'hex'),
+	//     util.reverseBuffer(new Buffer(blockHeightSerial, 'hex')),
+	//     new Buffer('00', 'hex') // OP_0
+	// ]);
+
+	// tx.addInput(new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
+	//     4294967295,
+	//     4294967295,
+	//     new Buffer.concat([serializedBlockHeight,
+	//         Buffer('5a2d4e4f4d50212068747470733a2f2f6769746875622e636f6d2f6a6f7368756179616275742f7a2d6e6f6d70', 'hex')]) //Z-NOMP! https://github.com/joshuayabut/z-nomp
+	// );
+
+	generatedTxHash := CreateRawTransaction(inputs, outputs).TxHash()
+	txHashes := make([]chainhash.Hash, len(reply.transactions)+1)
+	txHashes[0] = util.ReverseHash(generatedTxHash)
+	for i, transaction := range reply.transactions {
+		txHashes[i+1] = transaction.hash
+	}
+	merkleRootReversed := util.ReverseHash(getRoot(txHashes))
 
 	// TODO
 	newBlock := Block{
 		difficulty:         1,
 		version:            "",
 		prevHashReversed:   "",
-		merkleRootReversed: "",
+		merkleRootReversed: merkleRootReversed,
 		reservedField:      "",
 		nTime:              "",
 		bits:               "",
