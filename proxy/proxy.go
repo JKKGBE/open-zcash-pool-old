@@ -21,7 +21,7 @@ import (
 
 type ProxyServer struct {
 	config             *Config
-	blockTemplate      atomic.Value
+	workTemplate       atomic.Value
 	upstream           int32
 	upstreams          []*rpc.RPCClient
 	backend            *storage.RedisClient
@@ -84,7 +84,7 @@ func NewProxy(cfg *Config, backend *storage.RedisClient) *ProxyServer {
 	stateUpdateIntv := util.MustParseDuration(cfg.Proxy.StateUpdateInterval)
 	stateUpdateTimer := time.NewTimer(stateUpdateIntv)
 
-	proxy.extraNonceCounter = newNonce(cfg.InstanceId)
+	proxy.extraNonceCounter = newExtraNonceCounter(cfg.InstanceId)
 
 	go func() {
 		for {
@@ -290,7 +290,7 @@ func (s *ProxyServer) writeError(w http.ResponseWriter, status int, msg string) 
 }
 
 func (s *ProxyServer) currentBlockTemplate() *BlockTemplate {
-	t := s.blockTemplate.Load()
+	t := s.workTemplate.Load()
 	if t != nil {
 		return t.(*BlockTemplate)
 	} else {

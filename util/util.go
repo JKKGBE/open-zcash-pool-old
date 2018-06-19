@@ -1,6 +1,8 @@
 package util
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -26,10 +28,7 @@ func IsValidHexAddress(s string) bool {
 }
 
 func IsValidtAddress(s string) bool {
-	if !tAddressPattern.MatchString(s) {
-		return false
-	}
-	return true
+	return tAddressPattern.MatchString(s)
 }
 
 func IsZeroHash(s string) bool {
@@ -40,11 +39,11 @@ func MakeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-func GetTargetHex(diff int64) string {
-	difficulty := big.NewInt(diff)
-	diff1 := new(big.Int).Div(pow256, difficulty)
-	return string(common.ToHex(diff1.Bytes()))
-}
+// func GetTargetHex(diff int64) string {
+// 	difficulty := big.NewInt(diff)
+// 	diff1 := new(big.Int).Div(pow256, difficulty)
+// 	return string(common.ToHex(diff1.Bytes()))
+// }
 
 func TargetHexToDiff(targetHex string) *big.Int {
 	targetBytes := common.FromHex(targetHex)
@@ -88,9 +87,60 @@ func String2Big(num string) *big.Int {
 	return n
 }
 
-func ReverseHash(hash [32]byte) [32]byte {
-	for i, j := 0, len(hash)-1; i < j; i, j = i+1, j-1 {
-		hash[i], hash[j] = hash[j], hash[i]
+func ReverseBuffer(buffer []byte) []byte {
+	for i, j := 0, len(buffer)-1; i < j; i, j = i+1, j-1 {
+		buffer[i], buffer[j] = buffer[j], buffer[i]
 	}
-	return hash
+	return buffer
 }
+
+func HexToBytes(hexString string) []byte {
+	result, _ := hex.DecodeString(hexString)
+	return result
+}
+
+func BytesToHex(bytes []byte) string {
+	return hex.EncodeToString(bytes)
+}
+
+func PackUInt16LE(num uint16) []byte {
+	b := make([]byte, 2)
+	binary.LittleEndian.PutUint16(b, num)
+	return b
+}
+
+func PackUInt32LE(num uint32) []byte {
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, num)
+	return b
+}
+
+func PackUInt64LE(num uint64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, num)
+	return b
+}
+
+func PackUInt16BE(num uint16) []byte {
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, num)
+	return b
+}
+
+func PackUInt32BE(num uint32) []byte {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, num)
+	return b
+}
+
+func PackUInt64BE(num uint64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, num)
+	return b
+}
+
+// func HexToInt
+
+// func IntToByte
+
+// func ByteToInt

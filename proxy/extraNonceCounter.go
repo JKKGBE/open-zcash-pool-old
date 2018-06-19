@@ -6,16 +6,17 @@ import (
 )
 
 type extraNonceCounter struct {
-	placeholder []byte
-	counter     uint32
-	size        int
+	// placeholder []byte
+	counter uint32
+	// size        int
 }
 
-func newNonce(configInstanceId uint32) *extraNonceCounter {
-	placeholder, _ = hex.DecodeString("f000000ff111111f")
+func newExtraNonceCounter(configInstanceId uint32) *extraNonceCounter {
+	// placeholder, _ = hex.DecodeString("f000000ff111111f")
 	counter = configInstanceId << 27
-	size = 4
-	return &extraNonceCounter{placeholder: placeholder, counter: counter, size: size}
+	// size = 4
+	// return &extraNonceCounter{placeholder: placeholder, counter: counter, size: size}
+	return &extraNonceCounter{counter: counter}
 }
 
 func (n *extraNonceCounter) getNextExtraNonce1() string {
@@ -25,6 +26,6 @@ func (n *extraNonceCounter) getNextExtraNonce1() string {
 	return hex.EncodeToString(nonce)
 }
 
-func (n *extraNonceCounter) getExtraNonce2Size() int {
-	return len(n.placeholder) - n.size
-}
+// func (n *extraNonceCounter) getExtraNonce2Size() int {
+// 	return len(n.placeholder) - n.size
+// }

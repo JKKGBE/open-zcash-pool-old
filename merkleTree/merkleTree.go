@@ -12,7 +12,7 @@ type MerkleTree struct {
 
 // The Row type holds a sequence of hash values and represents one tier in the
 // Merkle Tree.
-type Row []Byte32
+type Row [][32]byte
 
 // The MerklePath type models the Merkle Path of a given leaf in the Merkle
 // Tree. It comprises essentially the sequence of hash values that must by
@@ -28,7 +28,7 @@ type MerklePath []MerklePathElement
 // The MerklePathElement type is a trivial container that binds together a hash
 // value and a flag to guide the Merkle Path traversal algorithm.
 type MerklePathElement struct {
-	hash                    Byte32
+	hash                    [32]byte
 	useFirstInConcatenation bool // me+other, not other+me
 }
 
@@ -54,7 +54,7 @@ func NewMerkleTree(bottomRow Row) (tree MerkleTree) {
 
 // MerkleRoot is a simple API query function, that exists so that the row-based
 // implementation details do not leak outside the object.
-func (tree MerkleTree) MerkleRoot() Byte32 {
+func (tree MerkleTree) MerkleRoot() [32]byte {
 	return tree.topRow()[0]
 }
 
@@ -95,7 +95,7 @@ func (tree MerkleTree) MerklePathForLeaf(leafIndex int) (
 // path. Note that is seeks advice from the Merkle Path about in which order
 // the elements should be concatenated at each level.
 func CalculateMerkleRootFromMerklePath(
-	leafHash Byte32, merklePath MerklePath) Byte32 {
+	leafHash [32]byte, merklePath MerklePath) [32]byte {
 
 	cumulativeHash := leafHash
 	for _, merklePathElement := range merklePath {
@@ -167,7 +167,7 @@ func (row Row) evaluateSibling(myIndex int) (
 // concatenating two copies of the only child available - i.e. the left child.
 func makeRowAbove(below Row) Row {
 	size := int(math.Ceil(float64(len(below)) / 2.0))
-	row := make([]Byte32, size)
+	row := make([][32]byte, size)
 	for i, _ := range row {
 		leftChild := i * 2
 		rightChild := leftChild + 1

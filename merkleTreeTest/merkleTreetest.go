@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 )
 
-func main() { fmt.Println("elo") }
+func main() {
+	fmt.Println("elo")
+	fmt.Println(strconv.FormatInt(32, 16))
+}
 
 // func main() {
 // 	b1, _ := hex.DecodeString("999d2c8bb6bda0bf784d9ebeb631d711dbbbfe1bc006ea13d6ad0d6a2649a971")

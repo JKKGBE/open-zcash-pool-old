@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/jkkgbe/open-zcash-pool/merkleTree"
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
 
@@ -17,8 +17,9 @@ type heightDiffPair struct {
 }
 
 type transaction struct {
-	fee  int    `json:"fee"`
+	data string `json:"data"`
 	hash string `json:"hash"`
+	fee  int    `json:"fee"`
 }
 
 type coinbaseTxn struct {
@@ -29,34 +30,41 @@ type coinbaseTxn struct {
 
 type BlockTemplate struct {
 	sync.RWMutex
-	prevBlockHash string        `json:"prevblockhash"`
+	version       uint32        `json:"version"`
+	prevBlockHash string        `json:"previousblockhash"`
 	transactions  []transaction `json:"transactions"`
 	coinbaseTxn   coinbaseTxn   `json:"coinbasetxn"`
-	longpollId    string        `json:""`
-	minTime       int           `json:""`
-	nonceRange    string        `json:""`
-	curtime       int           `json:""`
-	bits          string        `json:""`
-	height        int           `json:""`
+	longpollId    string        `json:"longpollid"`
+	target        string        `json:"target"`
+	minTime       int           `json:"mintime"`
+	nonceRange    string        `json:"noncerange"`
+	sigOpLimit    int           `json:"sigoplimit"`
+	sizeLimit     int           `json:"sizelimit"`
+	curTime       uint32        `json:"curtime"`
+	bits          string        `json:"bits"`
+	height        int           `json:"height"`
 }
 
-type Block struct {
-	difficulty         int
+type Work struct {
+	jobId              string
 	version            string
 	prevHashReversed   string
 	merkleRootReversed string
 	reservedField      string
-	nTime              string
+	time               string
 	bits               string
+	cleanJobs          bool
 	nonce              string
-	header             string
+	solutionSize       [3]byte
+	solution           [1344]byte
+	header             [4 + 32 + 32 + 32 + 4 + 4 + 32 + 3 + 1344]byte
 }
 
-// func (b Block) Difficulty() *big.Int     { return b.difficulty }
-// func (b Block) HashNoNonce() common.Hash { return b.hashNoNonce }
-// func (b Block) Nonce() uint64            { return b.nonce }
-// func (b Block) MixDigest() common.Hash   { return b.mixDigest }
-// func (b Block) NumberU64() uint64        { return b.number }
+// func (b Work) Difficulty() *big.Int     { return b.difficulty }
+// func (b Work) HashNoNonce() common.Hash { return b.hashNoNonce }
+// func (b Work) Nonce() uint64            { return b.nonce }
+// func (b Work) MixDigest() common.Hash   { return b.mixDigest }
+// func (b Work) NumberU64() uint64        { return b.number }
 
 func (s *ProxyServer) fetchBlockTemplate() {
 	rpc := s.rpc()
@@ -97,41 +105,42 @@ func (s *ProxyServer) fetchBlockTemplate() {
 	//         Buffer('5a2d4e4f4d50212068747470733a2f2f6769746875622e636f6d2f6a6f7368756179616275742f7a2d6e6f6d70', 'hex')]) //Z-NOMP! https://github.com/joshuayabut/z-nomp
 	// );
 
-	generatedTxHash := CreateRawTransaction(inputs, outputs).TxHash()
-	txHashes := make([]chainhash.Hash, len(reply.transactions)+1)
-	txHashes[0] = util.ReverseHash(generatedTxHash)
+	// generatedTxHash := CreateRawTransaction(inputs, outputs).TxHash()
+	txHashes := make([][32]byte, len(reply.transactions)+1)
+	// txHashes[0] = util.ReverseBuffer(generatedTxHash)
+	copy(txHashes[0][:], util.HexToBytes(reply.coinbaseTxn.hash)[:32])
 	for i, transaction := range reply.transactions {
-		txHashes[i+1] = transaction.hash
-	}
-	merkleRootReversed := util.ReverseHash(getRoot(txHashes))
-
-	// TODO
-	newBlock := Block{
-		difficulty:         1,
-		version:            "",
-		prevHashReversed:   "",
-		merkleRootReversed: merkleRootReversed,
-		reservedField:      "",
-		nTime:              "",
-		bits:               "",
-		nonce:              "",
-		header:             "",
+		copy(txHashes[i+1][:], util.HexToBytes(transaction.hash)[:32])
 	}
 
-	// Copy job backlog and add current one
-	newBlock.headers[reply[0]] = heightDiffPair{
-		diff:   util.TargetHexToDiff(reply[2]),
-		height: height,
+	mtBottomRow := txHashes
+	mt := merkleTree.NewMerkleTree(mtBottomRow)
+	mtr := mt.MerkleRoot()
+
+	newWork := Work{
+		version:            util.BytesToHex(util.PackUInt32LE(reply.version)),
+		prevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.prevBlockHash))),
+		merkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),
+		reservedField:      "0000000000000000000000000000000000000000000000000000000000000000",
+		time:               util.BytesToHex(util.PackUInt32LE(reply.curTime)),
+		bits:               util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.bits))),
+		cleanJobs:          true,
 	}
-	if t != nil {
-		for k, v := range t.headers {
-			if v.height > height-maxBacklog {
-				newBlock.headers[k] = v
-			}
-		}
-	}
-	s.blockTemplate.Store(&newBlock)
-	log.Printf("New block to mine on %s at height %d / %s", rpc.Name, height, reply[0][0:10])
+
+	// // Copy job backlog and add current one
+	// newBlock.headers[reply[0]] = heightDiffPair{
+	// 	diff:   util.TargetHexToDiff(reply[2]),
+	// 	height: height,
+	// }
+	// if t != nil {
+	// 	for k, v := range t.headers {
+	// 		if v.height > height-maxBacklog {
+	// 			newBlock.headers[k] = v
+	// 		}
+	// 	}
+	// }
+	s.workTemplate.Store(&newWork)
+	log.Printf("New block to mine on %s at height %d", rpc.Name, reply.height)
 
 	// Stratum
 	if s.config.Proxy.Stratum.Enabled {
