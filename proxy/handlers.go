@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/jkkgbe/open-zcash-pool/rpc"
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
 
@@ -20,7 +19,7 @@ func (s *ProxyServer) handleSubscribeRPC(cs *Session, extraNonce1 string) []byte
 	return json.RawMessage(`[null, "` + extraNonce1 + `"]`)
 }
 
-func (s *ProxyServer) handleAuthorizeRPC(cs *Session, params []string, id string) (bool, *ErrorReply) {
+func (s *ProxyServer) handleAuthorizeRPC(cs *Session, params []string) (bool, *ErrorReply) {
 	if len(params) == 0 {
 		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
 	}
@@ -56,51 +55,42 @@ func (s *ProxyServer) handleSubmitRPC(cs *Session, params []string, id string) (
 	if !workerPattern.MatchString(id) {
 		id = "0"
 	}
+	return false, &ErrorReply{Code: -1, Message: "Invalid params"} //temp
+	// if len(params) != 5 {
+	// 	s.policy.ApplyMalformedPolicy(cs.ip)
+	// 	log.Printf("Malformed params from %s@%s %v", cs.login, cs.ip, params)
+	// 	return false, &ErrorReply{Code: -1, Message: "Invalid params"}
+	// }
 
-	if len(params) != 5 {
-		s.policy.ApplyMalformedPolicy(cs.ip)
-		log.Printf("Malformed params from %s@%s %v", cs.login, cs.ip, params)
-		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
-	}
+	// if !hashPattern.MatchString(params[1]) || !hashPattern.MatchString(params[2]) {
+	// 	s.policy.ApplyMalformedPolicy(cs.ip)
+	// 	log.Printf("Malformed PoW result from %s@%s %v", cs.login, cs.ip, params)
+	// 	return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
+	// }
 
-	if !hashPattern.MatchString(params[1]) || !hashPattern.MatchString(params[2]) {
-		s.policy.ApplyMalformedPolicy(cs.ip)
-		log.Printf("Malformed PoW result from %s@%s %v", cs.login, cs.ip, params)
-		return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
-	}
+	// t := s.currentWork()
+	// shareExists, validShare, errorReply := s.processShare(cs, id, t, params)
+	// ok := s.policy.ApplySharePolicy(cs.ip, !shareExists && validShare)
 
-	t := s.currentBlockTemplate()
-	shareExists, validShare, errorReply := s.processShare(cs, id, t, params)
-	ok := s.policy.ApplySharePolicy(cs.ip, !shareExists && validShare)
+	// if !validShare {
+	// 	log.Printf("Invalid share from %s@%s", cs.login, cs.ip)
+	// 	// Bad shares limit reached, return error and close
+	// 	if !ok {
+	// 		return false, errorReply
+	// 	}
+	// 	return false, nil
+	// }
+	// log.Printf("Valid share from %s@%s", cs.login, cs.ip)
 
-	if !validShare {
-		log.Printf("Invalid share from %s@%s", cs.login, cs.ip)
-		// Bad shares limit reached, return error and close
-		if !ok {
-			return false, errorReply
-		}
-		return false, nil
-	}
-	log.Printf("Valid share from %s@%s", cs.login, cs.ip)
+	// if shareExists {
+	// 	log.Printf("Duplicate share from %s@%s %v", cs.login, cs.ip, params)
+	// 	return false, &ErrorReply{Code: 22, Message: "Duplicate share"}
+	// }
 
-	if shareExists {
-		log.Printf("Duplicate share from %s@%s %v", cs.login, cs.ip, params)
-		return false, &ErrorReply{Code: 22, Message: "Duplicate share"}
-	}
-
-	if !ok {
-		return true, &ErrorReply{Code: -1, Message: "High rate of invalid shares"}
-	}
-	return true, nil
-}
-
-func (s *ProxyServer) handleGetBlockByNumberRPC() *rpc.GetBlockReplyPart {
-	t := s.currentBlockTemplate()
-	var reply *rpc.GetBlockReplyPart
-	if t != nil {
-		reply = t.GetPendingBlockCache
-	}
-	return reply
+	// if !ok {
+	// 	return true, &ErrorReply{Code: -1, Message: "High rate of invalid shares"}
+	// }
+	// return true, nil
 }
 
 func (s *ProxyServer) handleUnknownRPC(cs *Session, m string) *ErrorReply {

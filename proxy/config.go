@@ -13,7 +13,7 @@ type Config struct {
 
 	Threads int `json:"threads"`
 
-	InstanceId int `json:"instanceId"`
+	InstanceId uint32 `json:"instanceId"`
 
 	Coin  string         `json:"coin"`
 	Redis storage.Config `json:"redis"`

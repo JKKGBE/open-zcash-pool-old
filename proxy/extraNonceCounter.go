@@ -13,7 +13,7 @@ type extraNonceCounter struct {
 
 func newExtraNonceCounter(configInstanceId uint32) *extraNonceCounter {
 	// placeholder, _ = hex.DecodeString("f000000ff111111f")
-	counter = configInstanceId << 27
+	counter := configInstanceId << 27
 	// size = 4
 	// return &extraNonceCounter{placeholder: placeholder, counter: counter, size: size}
 	return &extraNonceCounter{counter: counter}

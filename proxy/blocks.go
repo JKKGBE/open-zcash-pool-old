@@ -16,48 +16,48 @@ type heightDiffPair struct {
 	height uint64
 }
 
-type transaction struct {
-	data string `json:"data"`
-	hash string `json:"hash"`
-	fee  int    `json:"fee"`
+type Transaction struct {
+	Data string `json:"data"`
+	Hash string `json:"hash"`
+	Fee  int    `json:"fee"`
 }
 
-type coinbaseTxn struct {
-	data           string `json:"data"`
-	hash           string `json:"hash"`
-	foundersReward int    `json:"foundersreward"`
+type CoinbaseTxn struct {
+	Data           string `json:"data"`
+	Hash           string `json:"hash"`
+	FoundersReward int    `json:"foundersreward"`
 }
 
 type BlockTemplate struct {
 	sync.RWMutex
-	version       uint32        `json:"version"`
-	prevBlockHash string        `json:"previousblockhash"`
-	transactions  []transaction `json:"transactions"`
-	coinbaseTxn   coinbaseTxn   `json:"coinbasetxn"`
-	longpollId    string        `json:"longpollid"`
-	target        string        `json:"target"`
-	minTime       int           `json:"mintime"`
-	nonceRange    string        `json:"noncerange"`
-	sigOpLimit    int           `json:"sigoplimit"`
-	sizeLimit     int           `json:"sizelimit"`
-	curTime       uint32        `json:"curtime"`
-	bits          string        `json:"bits"`
-	height        int           `json:"height"`
+	Version       uint32        `json:"version"`
+	PrevBlockHash string        `json:"previousblockhash"`
+	Transactions  []Transaction `json:"transactions"`
+	CoinbaseTxn   CoinbaseTxn   `json:"coinbasetxn"`
+	LongpollId    string        `json:"longpollid"`
+	Target        string        `json:"target"`
+	MinTime       int           `json:"mintime"`
+	NonceRange    string        `json:"noncerange"`
+	SigOpLimit    int           `json:"sigoplimit"`
+	SizeLimit     int           `json:"sizelimit"`
+	CurTime       uint32        `json:"curtime"`
+	Bits          string        `json:"bits"`
+	Height        int           `json:"height"`
 }
 
 type Work struct {
-	jobId              string
-	version            string
-	prevHashReversed   string
-	merkleRootReversed string
-	reservedField      string
-	time               string
-	bits               string
-	cleanJobs          bool
-	nonce              string
-	solutionSize       [3]byte
-	solution           [1344]byte
-	header             [4 + 32 + 32 + 32 + 4 + 4 + 32 + 3 + 1344]byte
+	JobId              string
+	Version            string
+	PrevHashReversed   string
+	MerkleRootReversed string
+	ReservedField      string
+	Time               string
+	Bits               string
+	CleanJobs          bool
+	Nonce              string
+	SolutionSize       [3]byte
+	Solution           [1344]byte
+	Header             [4 + 32 + 32 + 32 + 4 + 4 + 32 + 3 + 1344]byte
 }
 
 // func (b Work) Difficulty() *big.Int     { return b.difficulty }
@@ -66,9 +66,9 @@ type Work struct {
 // func (b Work) MixDigest() common.Hash   { return b.mixDigest }
 // func (b Work) NumberU64() uint64        { return b.number }
 
-func (s *ProxyServer) fetchBlockTemplate() {
+func (s *ProxyServer) fetchWork() {
 	rpc := s.rpc()
-	t := s.currentBlockTemplate()
+	t := s.currentWork()
 	var reply BlockTemplate
 	err := rpc.GetBlockTemplate(&reply)
 	if err != nil {
@@ -76,41 +76,16 @@ func (s *ProxyServer) fetchBlockTemplate() {
 		return
 	}
 	// No need to update, we have fresh job
-	if t != nil && t.prevBlockHash == reply.prevBlockHash {
+	if t != nil && util.BytesToHex(util.ReverseBuffer(util.HexToBytes(t.PrevHashReversed))) == reply.PrevBlockHash {
 		return
 	}
 
-	// TODO calc merkle root etc
-	// if (blockHeight.toString(16).length % 2 === 0) {
-	//     var blockHeightSerial = blockHeight.toString(16);
-	// } else {
-	//     var blockHeightSerial = '0' + blockHeight.toString(16);
-	// }
-	// var height = Math.ceil((blockHeight << 1).toString(2).length / 8);
-	// var lengthDiff = blockHeightSerial.length/2 - height;
-	// for (var i = 0; i < lengthDiff; i++) {
-	//     blockHeightSerial = blockHeightSerial + '00';
-	// }
-	// length = '0' + height;
-	// var serializedBlockHeight = new Buffer.concat([
-	//     new Buffer(length, 'hex'),
-	//     util.reverseBuffer(new Buffer(blockHeightSerial, 'hex')),
-	//     new Buffer('00', 'hex') // OP_0
-	// ]);
-
-	// tx.addInput(new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
-	//     4294967295,
-	//     4294967295,
-	//     new Buffer.concat([serializedBlockHeight,
-	//         Buffer('5a2d4e4f4d50212068747470733a2f2f6769746875622e636f6d2f6a6f7368756179616275742f7a2d6e6f6d70', 'hex')]) //Z-NOMP! https://github.com/joshuayabut/z-nomp
-	// );
-
 	// generatedTxHash := CreateRawTransaction(inputs, outputs).TxHash()
-	txHashes := make([][32]byte, len(reply.transactions)+1)
+	txHashes := make([][32]byte, len(reply.Transactions)+1)
 	// txHashes[0] = util.ReverseBuffer(generatedTxHash)
-	copy(txHashes[0][:], util.HexToBytes(reply.coinbaseTxn.hash)[:32])
-	for i, transaction := range reply.transactions {
-		copy(txHashes[i+1][:], util.HexToBytes(transaction.hash)[:32])
+	copy(txHashes[0][:], util.HexToBytes(reply.CoinbaseTxn.Hash)[:32])
+	for i, transaction := range reply.Transactions {
+		copy(txHashes[i+1][:], util.HexToBytes(transaction.Hash)[:32])
 	}
 
 	mtBottomRow := txHashes
@@ -118,13 +93,13 @@ func (s *ProxyServer) fetchBlockTemplate() {
 	mtr := mt.MerkleRoot()
 
 	newWork := Work{
-		version:            util.BytesToHex(util.PackUInt32LE(reply.version)),
-		prevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.prevBlockHash))),
-		merkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),
-		reservedField:      "0000000000000000000000000000000000000000000000000000000000000000",
-		time:               util.BytesToHex(util.PackUInt32LE(reply.curTime)),
-		bits:               util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.bits))),
-		cleanJobs:          true,
+		Version:            util.BytesToHex(util.PackUInt32LE(reply.Version)),
+		PrevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash))),
+		MerkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),
+		ReservedField:      "0000000000000000000000000000000000000000000000000000000000000000",
+		Time:               util.BytesToHex(util.PackUInt32LE(reply.CurTime)),
+		Bits:               util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.Bits))),
+		CleanJobs:          true,
 	}
 
 	// // Copy job backlog and add current one
@@ -139,8 +114,8 @@ func (s *ProxyServer) fetchBlockTemplate() {
 	// 		}
 	// 	}
 	// }
-	s.workTemplate.Store(&newWork)
-	log.Printf("New block to mine on %s at height %d", rpc.Name, reply.height)
+	s.work.Store(&newWork)
+	log.Printf("New block to mine on %s at height %d", rpc.Name, reply.Height)
 
 	// Stratum
 	if s.config.Proxy.Stratum.Enabled {

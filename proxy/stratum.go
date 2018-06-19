@@ -108,19 +108,19 @@ func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
 		return err
 	}
 
-	var reply []byte
+	var reply interface{}
 	var errReply *ErrorReply
 	// Handle RPC methods
 	switch req.Method {
 	case "mining.subscribe":
 		extraNonce1 := s.extraNonceCounter.getNextExtraNonce1()
-		reply := s.handleSubscribeRPC(cs, extraNonce1)
+		reply = s.handleSubscribeRPC(cs, extraNonce1)
 	case "mining.authorize":
-		reply, errReply := s.handleAuthorizeRPC(cs, params)
+		reply, errReply = s.handleAuthorizeRPC(cs, params)
 	case "mining.submit":
-		reply, errReply := s.handleTCPSubmitRPC(cs, params, req.Worker)
+		reply, errReply = s.handleTCPSubmitRPC(cs, params, req.Worker)
 	default:
-		errReply := s.handleUnknownRPC(cs, req.Method)
+		errReply = s.handleUnknownRPC(cs, req.Method)
 	}
 
 	if errReply != nil {
@@ -137,11 +137,10 @@ func (cs *Session) sendTCPResult(id json.RawMessage, result interface{}) error {
 	return cs.enc.Encode(&message)
 }
 
-func (cs *Session) pushNewJob(result interface{}) error {
+func (cs *Session) pushNewJob(params *[]interface{}) error {
 	cs.Lock()
 	defer cs.Unlock()
-	// FIXME: Temporarily add ID for Claymore compliance
-	message := JSONPushMessage{Version: "2.0", Result: result, Id: 0}
+	message := JSONPushMessage{Version: "2.0", Method: "mining.notify", Params: *params, Id: 0}
 	return cs.enc.Encode(&message)
 }
 
@@ -174,11 +173,12 @@ func (s *ProxyServer) removeSession(cs *Session) {
 }
 
 func (s *ProxyServer) broadcastNewJobs() {
-	t := s.currentBlockTemplate()
-	if t == nil || len(t.Header) == 0 || s.isSick() {
+	t := s.currentWork()
+	// if t == nil || len(t.Header) == 0 || s.isSick() {
+	if t == nil || s.isSick() {
 		return
 	}
-	reply := []string{t.Header, t.Seed, s.diff}
+	reply := []interface{}{t.JobId, t.Version, t.PrevHashReversed, t.MerkleRootReversed, t.ReservedField, t.Time, t.Bits, t.CleanJobs}
 
 	s.sessionsMu.RLock()
 	defer s.sessionsMu.RUnlock()

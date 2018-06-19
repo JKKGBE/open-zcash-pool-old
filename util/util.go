@@ -39,11 +39,11 @@ func MakeTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
-// func GetTargetHex(diff int64) string {
-// 	difficulty := big.NewInt(diff)
-// 	diff1 := new(big.Int).Div(pow256, difficulty)
-// 	return string(common.ToHex(diff1.Bytes()))
-// }
+func GetTargetHex(diff int64) string {
+	difficulty := big.NewInt(diff)
+	diff1 := new(big.Int).Div(pow256, difficulty)
+	return string(common.ToHex(diff1.Bytes()))
+}
 
 func TargetHexToDiff(targetHex string) *big.Int {
 	targetBytes := common.FromHex(targetHex)
