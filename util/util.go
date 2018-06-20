@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -160,6 +161,42 @@ func PackUInt64BE(num uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, num)
 	return b
+}
+
+func ReverseUInt32(x uint32) uint32 {
+	return (uint32(x)&0xff000000)>>24 |
+		(uint32(x)&0x00ff0000)>>8 |
+		(uint32(x)&0x0000ff00)<<8 |
+		(uint32(x)&0x000000ff)<<24
+}
+
+func readHex(s string, n int) ([]byte, error) {
+	if len(s) > 2*n {
+		return nil, errors.New("value oversized")
+	}
+
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(bytes) != n {
+		// Pad with zeros
+		buf := make([]byte, n)
+		copy(buf[n-len(bytes):], bytes)
+		buf = bytes
+	}
+
+	return bytes, nil
+}
+
+func HexToUInt32(s string) uint32 {
+	data, err := readHex(s, 4)
+	if err != nil {
+		return 0
+	}
+
+	return binary.BigEndian.Uint32(data)
 }
 
 // func HexToInt

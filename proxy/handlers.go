@@ -8,8 +8,10 @@ import (
 )
 
 // Allow only lowercase hexadecimal with 0x prefix
-var noncePattern = regexp.MustCompile("^0x[0-9a-f]{16}$")
-var hashPattern = regexp.MustCompile("^0x[0-9a-f]{64}$")
+var nTimePattern = regexp.MustCompile("^[0-9a-f]{8}$")
+var noncePattern = regexp.MustCompile("^[0-9a-f]{64}$")
+
+// var solutionPattern = regexp.MustCompile("^[0-9a-f]{2694}$")
 var workerPattern = regexp.MustCompile("^[0-9a-zA-Z-_]{1,8}$")
 
 func (s *ProxyServer) handleSubscribeRPC(cs *Session, extraNonce1 string) []string {
@@ -45,7 +47,7 @@ func (s *ProxyServer) handleTCPSubmitRPC(cs *Session, params []string, id string
 	if !ok {
 		return false, &ErrorReply{Code: 24, Message: "Not authorized"}
 	}
-	if !noncePattern.MatchString(cs.extraNonce1) {
+	if cs.extraNonce1 == "" {
 		return false, &ErrorReply{Code: 25, Message: "Not subscribed"}
 	}
 	return s.handleSubmitRPC(cs, params, id)
@@ -62,10 +64,22 @@ func (s *ProxyServer) handleSubmitRPC(cs *Session, params []string, id string) (
 		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
 	}
 
-	if !hashPattern.MatchString(params[1]) || !hashPattern.MatchString(params[2]) {
+	if !nTimePattern.MatchString(params[2]) {
 		s.policy.ApplyMalformedPolicy(cs.ip)
-		log.Printf("Malformed PoW result from %s@%s %v", cs.login, cs.ip, params)
-		return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
+		log.Printf("Malformed nTime result from %s@%s %v", cs.login, cs.ip, params)
+		return false, &ErrorReply{Code: -1, Message: "Malformed nTime result"}
+	}
+
+	if !noncePattern.MatchString(cs.extraNonce1 + params[3]) {
+		s.policy.ApplyMalformedPolicy(cs.ip)
+		log.Printf("Malformed nonce result from %s@%s %v", cs.login, cs.ip, params)
+		return false, &ErrorReply{Code: -1, Message: "Malformed nonce result"}
+	}
+
+	if len(params[4]) != 2694 {
+		s.policy.ApplyMalformedPolicy(cs.ip)
+		log.Printf("Malformed solution result from %s@%s %v", cs.login, cs.ip, params)
+		return false, &ErrorReply{Code: -1, Message: "Malformed solution result, != 2694 length"}
 	}
 
 	return s.processShare(cs, id, params)

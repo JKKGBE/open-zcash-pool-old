@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"bytes"
-	"encoding/binary"
 	"log"
 	"math/big"
 	"sync"
@@ -49,24 +47,19 @@ type BlockTemplate struct {
 
 type Work struct {
 	JobId              string
-	Version            uint32
-	PrevHashReversed   []byte
-	MerkleRootReversed []byte
-	ReservedField      []byte
+	Version            string
+	PrevHashReversed   string
+	MerkleRootReversed string
+	ReservedField      string
 	Time               string
 	Bits               string
 	CleanJobs          bool
-	Nonce              string
-	SolutionSize       [3]byte
-	Solution           [1344]byte
-	Header             [4 + 32 + 32 + 32 + 4 + 4 + 32 + 3 + 1344]byte
+	Template           *BlockTemplate
+	// Nonce              string
+	// SolutionSize       [3]byte
+	// Solution           [1344]byte
+	// Header             [4 + 32 + 32 + 32 + 4 + 4 + 32 + 3 + 1344]byte
 }
-
-// func (b Work) Difficulty() *big.Int     { return b.difficulty }
-// func (b Work) HashNoNonce() common.Hash { return b.hashNoNonce }
-// func (b Work) Nonce() uint64            { return b.nonce }
-// func (b Work) MixDigest() common.Hash   { return b.mixDigest }
-// func (b Work) NumberU64() uint64        { return b.number }
 
 func (s *ProxyServer) fetchWork() {
 	rpc := s.rpc()
@@ -78,7 +71,7 @@ func (s *ProxyServer) fetchWork() {
 		return
 	}
 	// No need to update, we have fresh job
-	if t != nil && util.BytesToHex(util.ReverseBuffer(t.PrevHashReversed)) == reply.PrevBlockHash {
+	if t != nil && util.BytesToHex(util.ReverseBuffer(util.HexToBytes(t.PrevHashReversed))) == reply.PrevBlockHash {
 		return
 	}
 
@@ -96,13 +89,14 @@ func (s *ProxyServer) fetchWork() {
 
 	newWork := Work{
 		JobId:              "1",
-		Version:            reply.Version,
-		PrevHashReversed:   util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash)),
-		MerkleRootReversed: util.ReverseBuffer(mtr[:]),
-		ReservedField:      util.HexToBytes("0000000000000000000000000000000000000000000000000000000000000000"),
+		Version:            util.BytesToHex(util.PackUInt32LE(reply.Version)),
+		PrevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash))),
+		MerkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),
+		ReservedField:      "0000000000000000000000000000000000000000000000000000000000000000",
 		Time:               util.BytesToHex(util.PackUInt32LE(reply.CurTime)),
 		Bits:               util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.Bits))),
 		CleanJobs:          true,
+		Template:           &reply,
 	}
 
 	// // Copy job backlog and add current one
@@ -126,27 +120,25 @@ func (s *ProxyServer) fetchWork() {
 	}
 }
 
-func (w *Work) BuildHeader(nTime, nBits uint32, noncePart1, noncePart2 []byte) *bytes.Buffer {
-	buffer := bytes.NewBuffer(nil)
-	_ = binary.Write(buffer, binary.BigEndian, w.Version)
-	_, _ = buffer.Write(w.PrevHashReversed)
-	_, _ = buffer.Write(w.MerkleRootReversed)
-	_, _ = buffer.Write(w.ReservedField)
-	_ = binary.Write(buffer, binary.BigEndian, w.Time)
-	_ = binary.Write(buffer, binary.BigEndian, w.Bits)
-	_, _ = buffer.Write(noncePart1)
-	_, _ = buffer.Write(noncePart2)
-
-	return buffer
+func (w *Work) BuildHeader(noncePart1, noncePart2 string) []byte {
+	result := util.HexToBytes(w.Version)
+	result = append(result, util.HexToBytes(w.PrevHashReversed)...)
+	result = append(result, util.HexToBytes(w.MerkleRootReversed)...)
+	result = append(result, util.HexToBytes(w.ReservedField)...)
+	result = append(result, util.HexToBytes(w.Time)...)
+	result = append(result, util.HexToBytes(w.Bits)...)
+	result = append(result, util.HexToBytes(noncePart1)...)
+	result = append(result, util.HexToBytes(noncePart2)...)
+	return result
 }
 
 func (w *Work) CreateJob() []interface{} {
 	return []interface{}{
 		w.JobId,
-		util.BytesToHex(util.PackUInt32LE(w.Version)),
-		util.BytesToHex(w.PrevHashReversed),
-		util.BytesToHex(w.MerkleRootReversed),
-		util.BytesToHex(w.ReservedField),
+		w.Version,
+		w.PrevHashReversed,
+		w.MerkleRootReversed,
+		w.ReservedField,
 		w.Time,
 		w.Bits,
 		w.CleanJobs,

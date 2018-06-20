@@ -45,8 +45,8 @@ func (r *RPCClient) GetBlockTemplate(reply interface{}) error {
 	return err
 }
 
-func (r *RPCClient) SubmitBlock(params []string) (bool, error) {
-	rpcResp, err := r.doPost(r.Url, "submitblock", params)
+func (r *RPCClient) SubmitBlock(header string) (bool, error) {
+	rpcResp, err := r.doPost(r.Url, "submitblock", []string{header})
 	if err != nil {
 		return false, err
 	}
