@@ -15,13 +15,15 @@ import (
 	"github.com/jkkgbe/open-zcash-pool/storage"
 )
 
-var diff1 = "0x0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+var diffMain = "0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+var diffTest = "07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 var cfg proxy.Config
 var backend *storage.RedisClient
 
 func startProxy() {
-	s := proxy.NewProxy(&cfg, backend)
-	s.Start()
+	proxy.NewProxy(&cfg, backend)
+	// s := proxy.NewProxy(&cfg, backend)
+	// s.Start()
 }
 
 func readConfig(cfg *proxy.Config) {

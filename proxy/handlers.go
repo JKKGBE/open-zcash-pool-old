@@ -1,10 +1,8 @@
 package proxy
 
 import (
-	"encoding/json"
 	"log"
 	"regexp"
-	"strings"
 
 	"github.com/jkkgbe/open-zcash-pool/util"
 )
@@ -14,9 +12,11 @@ var noncePattern = regexp.MustCompile("^0x[0-9a-f]{16}$")
 var hashPattern = regexp.MustCompile("^0x[0-9a-f]{64}$")
 var workerPattern = regexp.MustCompile("^[0-9a-zA-Z-_]{1,8}$")
 
-func (s *ProxyServer) handleSubscribeRPC(cs *Session, extraNonce1 string) []byte {
+func (s *ProxyServer) handleSubscribeRPC(cs *Session, extraNonce1 string) []string {
 	cs.extraNonce1 = extraNonce1
-	return json.RawMessage(`[null, "` + extraNonce1 + `"]`)
+	array := []string{"0", extraNonce1}
+	return array
+	// return json.RawMessage(`[null, "` + extraNonce1 + `"]`)
 }
 
 func (s *ProxyServer) handleAuthorizeRPC(cs *Session, params []string) (bool, *ErrorReply) {
@@ -24,7 +24,7 @@ func (s *ProxyServer) handleAuthorizeRPC(cs *Session, params []string) (bool, *E
 		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
 	}
 
-	login := strings.ToLower(params[0])
+	login := params[0]
 	if !util.IsValidtAddress(login) {
 		return false, &ErrorReply{Code: -1, Message: "Invalid login"}
 	}
@@ -55,42 +55,20 @@ func (s *ProxyServer) handleSubmitRPC(cs *Session, params []string, id string) (
 	if !workerPattern.MatchString(id) {
 		id = "0"
 	}
-	return false, &ErrorReply{Code: -1, Message: "Invalid params"} //temp
-	// if len(params) != 5 {
-	// 	s.policy.ApplyMalformedPolicy(cs.ip)
-	// 	log.Printf("Malformed params from %s@%s %v", cs.login, cs.ip, params)
-	// 	return false, &ErrorReply{Code: -1, Message: "Invalid params"}
-	// }
 
-	// if !hashPattern.MatchString(params[1]) || !hashPattern.MatchString(params[2]) {
-	// 	s.policy.ApplyMalformedPolicy(cs.ip)
-	// 	log.Printf("Malformed PoW result from %s@%s %v", cs.login, cs.ip, params)
-	// 	return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
-	// }
+	if len(params) != 5 {
+		s.policy.ApplyMalformedPolicy(cs.ip)
+		log.Printf("Malformed params from %s@%s %v", cs.login, cs.ip, params)
+		return false, &ErrorReply{Code: -1, Message: "Invalid params"}
+	}
 
-	// t := s.currentWork()
-	// shareExists, validShare, errorReply := s.processShare(cs, id, t, params)
-	// ok := s.policy.ApplySharePolicy(cs.ip, !shareExists && validShare)
+	if !hashPattern.MatchString(params[1]) || !hashPattern.MatchString(params[2]) {
+		s.policy.ApplyMalformedPolicy(cs.ip)
+		log.Printf("Malformed PoW result from %s@%s %v", cs.login, cs.ip, params)
+		return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
+	}
 
-	// if !validShare {
-	// 	log.Printf("Invalid share from %s@%s", cs.login, cs.ip)
-	// 	// Bad shares limit reached, return error and close
-	// 	if !ok {
-	// 		return false, errorReply
-	// 	}
-	// 	return false, nil
-	// }
-	// log.Printf("Valid share from %s@%s", cs.login, cs.ip)
-
-	// if shareExists {
-	// 	log.Printf("Duplicate share from %s@%s %v", cs.login, cs.ip, params)
-	// 	return false, &ErrorReply{Code: 22, Message: "Duplicate share"}
-	// }
-
-	// if !ok {
-	// 	return true, &ErrorReply{Code: -1, Message: "High rate of invalid shares"}
-	// }
-	// return true, nil
+	return s.processShare(cs, id, params)
 }
 
 func (s *ProxyServer) handleUnknownRPC(cs *Session, m string) *ErrorReply {

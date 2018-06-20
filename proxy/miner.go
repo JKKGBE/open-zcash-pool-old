@@ -1,41 +1,57 @@
 package proxy
 
-import (
-	"github.com/ethereum/ethash"
-)
-
-var hasher = ethash.New()
-
-/*
-func (s *ProxyServer) processShare(cs *Session, id string, t *BlockTemplate, params []string) (bool, bool, *ErrorReply) {
-	workerId := params[0]
-	jobId := params[1]
+func (s *ProxyServer) processShare(cs *Session, id string, params []string) (bool, *ErrorReply) {
+	// workerId := params[0]
+	// jobId := params[1]
 	nTime := params[2]
 	extraNonce2 := params[3]
 	solution := params[4]
 	nOnce := cs.extraNonce1 + extraNonce2
 
-	submitTime := time.Unix() / 1000
+	// submitTime := time.Unix() / 1000
 
 	// TODO:
-	//job := jobs[jobId]
-	//if !job then return {Code: 21, Message: "Job not found"}
+	// job := jobs[jobId]
+	// if !job then return {Code: 21, Message: "Job not found"}
 
 	if len(nTime) != 8 {
-		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of nTime"}
+		return false, &ErrorReply{Code: 20, Message: "Incorrect size of nTime"}
 	}
 
 	if len(nOnce) != 64 {
-		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of nOnce"}
+		return false, &ErrorReply{Code: 20, Message: "Incorrect size of nOnce"}
 	}
 
 	if len(solution) != 2694 {
-		return false, false, &ErrorReply{Code: 20, Message: "Incorrect size of solution"}
+		return false, &ErrorReply{Code: 20, Message: "Incorrect size of solution"}
 	}
 
-	//TODO: verify and submit block
+	// t := s.currentWork()
+
+	// shareExists, validShare, errorReply := s.processShare(cs, id, t, params)
+	// ok := s.policy.ApplySharePolicy(cs.ip, !shareExists && validShare)
+
+	// if !validShare {
+	// 	log.Printf("Invalid share from %s@%s", cs.login, cs.ip)
+	// 	// Bad shares limit reached, return error and close
+	// 	if !ok {
+	// 		return false, false, errorReply
+	// 	}
+	// 	return false, false, nil
+	// }
+	// log.Printf("Valid share from %s@%s", cs.login, cs.ip)
+
+	// if shareExists {
+	// 	log.Printf("Duplicate share from %s@%s %v", cs.login, cs.ip, params)
+	// 	return false, false, &ErrorReply{Code: 22, Message: "Duplicate share"}
+	// }
+
+	// if !ok {
+	// 	return false, true, &ErrorReply{Code: -1, Message: "High rate of invalid shares"}
+	// }
+	// return false, true, nil
+	return true, nil
 }
-*/
 
 // func (s *ProxyServer) processShare(cs *Session, id string, t *Work, params []string) (bool, bool, error) {
 // 	nonceHex := params[0]

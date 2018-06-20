@@ -93,6 +93,7 @@ func (s *ProxyServer) fetchWork() {
 	mtr := mt.MerkleRoot()
 
 	newWork := Work{
+		JobId:              "1",
 		Version:            util.BytesToHex(util.PackUInt32LE(reply.Version)),
 		PrevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash))),
 		MerkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),

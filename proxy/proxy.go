@@ -80,7 +80,8 @@ func NewProxy(cfg *Config, backend *storage.RedisClient) *ProxyServer {
 	stateUpdateIntv := util.MustParseDuration(cfg.Proxy.StateUpdateInterval)
 	stateUpdateTimer := time.NewTimer(stateUpdateIntv)
 
-	proxy.extraNonceCounter = newExtraNonceCounter(cfg.InstanceId)
+	// proxy.extraNonceCounter = newExtraNonceCounter(cfg.InstanceId)
+	proxy.extraNonceCounter = newExtraNonceCounter(1)
 
 	go func() {
 		for {

@@ -41,6 +41,7 @@ func (r *RPCClient) GetBlockTemplate(reply interface{}) error {
 		return err
 	}
 	err = json.Unmarshal(*rpcResp.Result, reply)
+	// fmt.Println("6", reply)
 	return err
 }
 
@@ -56,14 +57,20 @@ func (r *RPCClient) SubmitBlock(params []string) (bool, error) {
 
 func (r *RPCClient) doPost(url string, method string, params interface{}) (*JSONRpcResp, error) {
 	jsonReq := map[string]interface{}{"jsonrpc": "2.0", "method": method, "params": params, "id": 0}
+	// fmt.Println("1", jsonReq)
+
 	data, _ := json.Marshal(jsonReq)
+	// fmt.Println("2", data)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	// fmt.Println("3", req)
+
 	req.Header.Set("Content-Length", (string)(len(data)))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := r.client.Do(req)
+	// fmt.Println("4", resp)
 	if err != nil {
 		r.markSick()
 		return nil, err
@@ -72,6 +79,7 @@ func (r *RPCClient) doPost(url string, method string, params interface{}) (*JSON
 
 	var rpcResp *JSONRpcResp
 	err = json.NewDecoder(resp.Body).Decode(&rpcResp)
+	// fmt.Println("5", rpcResp)
 	if err != nil {
 		r.markSick()
 		return nil, err

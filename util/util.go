@@ -16,8 +16,10 @@ var Ether = math.BigPow(10, 18)
 var Shannon = math.BigPow(10, 9)
 
 var pow256 = math.BigPow(2, 256)
+var powLimitMain = new(big.Int).Sub(math.BigPow(2, 243), big.NewInt(1))
+var powLimitTest = new(big.Int).Sub(math.BigPow(2, 251), big.NewInt(1))
 var addressPattern = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-var tAddressPattern = regexp.MustCompile("^t[0-9a-fA-F]{34}$")
+var tAddressPattern = regexp.MustCompile("^t[0-9a-zA-Z]{34}$")
 var zeroHash = regexp.MustCompile("^0?x?0+$")
 
 func IsValidHexAddress(s string) bool {
@@ -40,10 +42,31 @@ func MakeTimestamp() int64 {
 }
 
 func GetTargetHex(diff int64) string {
+	var result [32]uint8
 	difficulty := big.NewInt(diff)
-	diff1 := new(big.Int).Div(pow256, difficulty)
-	return string(common.ToHex(diff1.Bytes()))
+	bytes := new(big.Int).Div(powLimitTest, difficulty).Bytes()
+	copy(result[len(result)-len(bytes):], bytes)
+	return BytesToHex(result[:])
+	// fmt.Println("------------------")
+	// difficulty := big.NewInt(diff * 8192)
+	// fmt.Println(diff, difficulty, powLimitTest)
+	// adjPow := BytesToHex(new(big.Int).Div(powLimitTest, difficulty).Bytes())
+	// fmt.Println(adjPow, len(adjPow), 64-len(adjPow))
+	// zeroPad := ""
+	// if 64-len(adjPow) != 0 {
+	// 	zeroPad = strings.Repeat("0", 64-len(adjPow))
+	// }
+	// fmt.Println(strings.Join([]string{zeroPad, adjPow}, "")[0:64])
+	// fmt.Println(strings.Join([]string{zeroPad, adjPow}, "")[0:64])
+	// fmt.Println("------------------")
+	// return strings.Join([]string{zeroPad, adjPow}, "")[0:64]
 }
+
+// func GetTargetHex(diff int64) string {
+// 	difficulty := big.NewInt(diff)
+// 	diff1 := new(big.Int).Div(pow256, difficulty)
+// 	return string(common.ToHex(diff1.Bytes()))
+// }
 
 func TargetHexToDiff(targetHex string) *big.Int {
 	targetBytes := common.FromHex(targetHex)
