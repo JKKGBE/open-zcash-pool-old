@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MaxReqSize = 1024
+	MaxReqSize = 10240
 )
 
 func (s *ProxyServer) ListenTCP() {
