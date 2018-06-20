@@ -131,7 +131,7 @@ func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
 		if t == nil || s.isSick() {
 			return nil
 		}
-		reply := []interface{}{t.JobId, t.Version, t.PrevHashReversed, t.MerkleRootReversed, t.ReservedField, t.Time, t.Bits, t.CleanJobs}
+		reply := t.CreateJob()
 		return cs.pushNewJob(&reply)
 	case "mining.submit":
 		reply, errReply = s.handleTCPSubmitRPC(cs, params, req.Worker)
@@ -208,7 +208,7 @@ func (s *ProxyServer) broadcastNewJobs() {
 	if t == nil || s.isSick() {
 		return
 	}
-	reply := []interface{}{t.JobId, t.Version, t.PrevHashReversed, t.MerkleRootReversed, t.ReservedField, t.Time, t.Bits, t.CleanJobs}
+	reply := t.CreateJob()
 
 	s.sessionsMu.RLock()
 	defer s.sessionsMu.RUnlock()

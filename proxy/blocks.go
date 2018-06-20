@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bytes"
+	"encoding/binary"
 	"log"
 	"math/big"
 	"sync"
@@ -47,10 +49,10 @@ type BlockTemplate struct {
 
 type Work struct {
 	JobId              string
-	Version            string
-	PrevHashReversed   string
-	MerkleRootReversed string
-	ReservedField      string
+	Version            uint32
+	PrevHashReversed   []byte
+	MerkleRootReversed []byte
+	ReservedField      []byte
 	Time               string
 	Bits               string
 	CleanJobs          bool
@@ -76,7 +78,7 @@ func (s *ProxyServer) fetchWork() {
 		return
 	}
 	// No need to update, we have fresh job
-	if t != nil && util.BytesToHex(util.ReverseBuffer(util.HexToBytes(t.PrevHashReversed))) == reply.PrevBlockHash {
+	if t != nil && util.BytesToHex(util.ReverseBuffer(t.PrevHashReversed)) == reply.PrevBlockHash {
 		return
 	}
 
@@ -94,10 +96,10 @@ func (s *ProxyServer) fetchWork() {
 
 	newWork := Work{
 		JobId:              "1",
-		Version:            util.BytesToHex(util.PackUInt32LE(reply.Version)),
-		PrevHashReversed:   util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash))),
-		MerkleRootReversed: util.BytesToHex(util.ReverseBuffer(mtr[:])),
-		ReservedField:      "0000000000000000000000000000000000000000000000000000000000000000",
+		Version:            reply.Version,
+		PrevHashReversed:   util.ReverseBuffer(util.HexToBytes(reply.PrevBlockHash)),
+		MerkleRootReversed: util.ReverseBuffer(mtr[:]),
+		ReservedField:      util.HexToBytes("0000000000000000000000000000000000000000000000000000000000000000"),
 		Time:               util.BytesToHex(util.PackUInt32LE(reply.CurTime)),
 		Bits:               util.BytesToHex(util.ReverseBuffer(util.HexToBytes(reply.Bits))),
 		CleanJobs:          true,
@@ -121,5 +123,32 @@ func (s *ProxyServer) fetchWork() {
 	// Stratum
 	if s.config.Proxy.Stratum.Enabled {
 		go s.broadcastNewJobs()
+	}
+}
+
+func (w *Work) BuildHeader(nTime, nBits uint32, noncePart1, noncePart2 []byte) *bytes.Buffer {
+	buffer := bytes.NewBuffer(nil)
+	_ = binary.Write(buffer, binary.BigEndian, w.Version)
+	_, _ = buffer.Write(w.PrevHashReversed)
+	_, _ = buffer.Write(w.MerkleRootReversed)
+	_, _ = buffer.Write(w.ReservedField)
+	_ = binary.Write(buffer, binary.BigEndian, w.Time)
+	_ = binary.Write(buffer, binary.BigEndian, w.Bits)
+	_, _ = buffer.Write(noncePart1)
+	_, _ = buffer.Write(noncePart2)
+
+	return buffer
+}
+
+func (w *Work) CreateJob() []interface{} {
+	return []interface{}{
+		w.JobId,
+		util.BytesToHex(util.PackUInt32LE(w.Version)),
+		util.BytesToHex(w.PrevHashReversed),
+		util.BytesToHex(w.MerkleRootReversed),
+		util.BytesToHex(w.ReservedField),
+		w.Time,
+		w.Bits,
+		w.CleanJobs,
 	}
 }

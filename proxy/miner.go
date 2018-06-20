@@ -26,7 +26,7 @@ func (s *ProxyServer) processShare(cs *Session, id string, params []string) (boo
 		return false, &ErrorReply{Code: 20, Message: "Incorrect size of solution"}
 	}
 
-	// t := s.currentWork()
+	t := s.currentWork()
 
 	// shareExists, validShare, errorReply := s.processShare(cs, id, t, params)
 	// ok := s.policy.ApplySharePolicy(cs.ip, !shareExists && validShare)
