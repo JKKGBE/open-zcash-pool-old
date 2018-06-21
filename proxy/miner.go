@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/jkkgbe/open-zcash-pool/equihash"
@@ -16,12 +17,16 @@ func (s *ProxyServer) processShare(cs *Session, id string, params []string) (boo
 
 	work := s.currentWork()
 	header := work.BuildHeader(cs.extraNonce1, extraNonce2)
-
-	if equihash.Verify(9, 200, header, util.HexToBytes(solution)) {
-		header = append(header, []byte{0xfd, 0x40, 0x05}...)
-		header = append(header, solution[:]...)
+	ok, err := equihash.Verify(200, 9, header, util.HexToBytes(solution)[3:])
+	if err != nil {
+		fmt.Println(err)
+	}
+	if ok {
+		header = append(header, util.HexToBytes(solution)...)
+		fmt.Println(util.BytesToHex(header))
 		ok, err := s.rpc().SubmitBlock(util.BytesToHex(header))
 		if err != nil {
+			fmt.Println(err)
 			log.Printf("Block submission failure")
 			return false, &ErrorReply{Code: 23, Message: "Invalid share"}
 		} else if !ok {
